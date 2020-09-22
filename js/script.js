@@ -16,11 +16,11 @@ const refs = {
 };
 
 // функция генерирования разметки заданного типа (<li><img></li>)
+const GALLERY_ITEM_CLASS = 'gallery__item';
+const GALLERY_LINK_CLASS = 'gallery__link';
+const GALLERY_IMAGE_CLASS = 'gallery__image';
 
 const createGalleryMarkup = obj => {
-  const GALLERY_ITEM_CLASS = 'gallery__item';
-  const GALLERY_LINK_CLASS = 'gallery__link';
-  const GALLERY_IMAGE_CLASS = 'gallery__image';
   return obj.reduce(
     (acc, { preview, original, description }) =>
       acc +
@@ -33,7 +33,7 @@ const createGalleryMarkup = obj => {
 
 const galleryMarkup = createGalleryMarkup(galleryData);
 
-refs.galleryList.innerHTML = galleryMarkup;
+refs.galleryList.insertAdjacentHTML('beforeend', galleryMarkup);
 
 // добавляем необходимые элементы в объект ссылок
 
@@ -41,9 +41,6 @@ refs.galleryItem = document.querySelector('.gallery__item');
 refs.galleryImage = document.querySelector('.gallery__image');
 
 // Реализация делегирования на галерее ul.js - gallery и получение url большого изображения.
-
-// тут реализация
-
 // Открытие модального окна по клику на элементе галереи.
 // Подмена значения атрибута src элемента img.lightbox__image.
 
@@ -52,6 +49,7 @@ refs.galleryList.addEventListener('click', onGalleryImageClick);
 function onGalleryImageClick(event) {
   event.preventDefault();
   const target = event.target;
+  const targetItem = target.closest(`.${GALLERY_ITEM_CLASS}`);
 
   // проверяем чтоб клик прошел по картинке а не мимо
   if (target.nodeName !== 'IMG') return;
@@ -59,22 +57,22 @@ function onGalleryImageClick(event) {
   refs.backdrop.classList.add('is-open');
 
   // вешаем слушатели клавиатуры
-  window.addEventListener('keydown', onEscKeyPress);
-  window.addEventListener('keydown', onRightArrowPress);
-  window.addEventListener('keydown', onLeftArrowPress);
+  addKeyListeners();
 
   // вешаем активный класс на картинку которая открывается в модалке и подменяем src элемента img.lightbox__image (и alt)
   setModalImageSource(target);
-  setActiveGalleryElement(target);
+  targetItem.classList.add('image-in-modal');
+}
+
+function addKeyListeners() {
+  window.addEventListener('keydown', onEscKeyPress);
+  window.addEventListener('keydown', onRightArrowPress);
+  window.addEventListener('keydown', onLeftArrowPress);
 }
 
 function setModalImageSource(el) {
   refs.imageInModalWindow.src = el.dataset.source;
   refs.imageInModalWindow.alt = el.alt;
-}
-
-function setActiveGalleryElement(el) {
-  el.parentNode.parentNode.classList.add('image-in-modal');
 }
 
 // Закрытие модального окна по клику на кнопку button[data - action= "close-modal"].
@@ -84,15 +82,20 @@ refs.closeModalBtn.addEventListener('click', onCloseModal);
 // Очистка значения атрибута src элемента img.lightbox__image.
 // Это необходимо для того, чтобы при следующем открытии модального окна, пока грузится изображение, мы не видели предыдущее.
 // снимаем активный класс, который используется для листания галлереи
-// снимаем слушатели клавиатуры (они нужны на открытой модалке)
+// снимаем слушатели клавиатуры (они нужны только на открытой модалке)
 
 function onCloseModal(event) {
   refs.backdrop.classList.remove('is-open');
   refs.imageInModalWindow.src = '';
-  document
+
+  refs.galleryList
     .querySelectorAll('.gallery__item')
     .forEach(el => el.classList.remove('image-in-modal'));
 
+  removeKeyListeners();
+}
+
+function removeKeyListeners() {
   window.removeEventListener('keydown', onEscKeyPress);
   window.removeEventListener('keydown', onRightArrowPress);
   window.removeEventListener('keydown', onLeftArrowPress);
@@ -126,40 +129,33 @@ function onEscKeyPress(event) {
 
 function onRightArrowPress(event) {
   const RIGHT_ARROW_KEY_CODE = 'ArrowRight';
-  const itemInModalBeforeArrowPress = document.querySelector('.image-in-modal');
 
   if (event.code === RIGHT_ARROW_KEY_CODE) {
     // уходим от ошибки когда нет следующего элемента коллекции
-    if (itemInModalBeforeArrowPress === refs.galleryList.lastElementChild)
-      return;
+    const currentItem = document.querySelector('.image-in-modal');
+    if (currentItem === refs.galleryList.lastElementChild) return;
     //   выбираем следующий элемент коллекции, даем ему активный класс и присваиывем его scr на модалку
-    const itemInModalAfterArrowPress =
-      itemInModalBeforeArrowPress.nextElementSibling;
-    const imageInModalAfterArrowPress = itemInModalAfterArrowPress.querySelector(
-      '.gallery__image',
-    );
-    setModalImageSource(imageInModalAfterArrowPress);
-    itemInModalBeforeArrowPress.classList.remove('image-in-modal');
-    setActiveGalleryElement(imageInModalAfterArrowPress);
+    const nextItem = currentItem.nextElementSibling;
+    changeImage(currentItem, nextItem);
   }
 }
 
 function onLeftArrowPress(event) {
   const LEFT_ARROW_KEY_CODE = 'ArrowLeft';
-  const itemInModalBeforeArrowPress = document.querySelector('.image-in-modal');
 
   if (event.code === LEFT_ARROW_KEY_CODE) {
+    const currentItem = document.querySelector('.image-in-modal');
     // уходим от ошибки когда нет предыдущего элемента коллекции
-    if (itemInModalBeforeArrowPress === refs.galleryList.firstElementChild)
-      return;
+    if (currentItem === refs.galleryList.firstElementChild) return;
     //   выбираем предыдущий элемент коллекции, даем ему активный класс и присваиывем его scr на модалку
-    const itemInModalAfterArrowPress =
-      itemInModalBeforeArrowPress.previousElementSibling;
-    const imageInModalAfterArrowPress = itemInModalAfterArrowPress.querySelector(
-      '.gallery__image',
-    );
-    setModalImageSource(imageInModalAfterArrowPress);
-    itemInModalBeforeArrowPress.classList.remove('image-in-modal');
-    setActiveGalleryElement(imageInModalAfterArrowPress);
+    const nextItem = currentItem.previousElementSibling;
+    changeImage(currentItem, nextItem);
   }
+}
+
+function changeImage(currActiveItem, nextActiveItem) {
+  const nextImage = nextActiveItem.querySelector('.gallery__image');
+  setModalImageSource(nextImage);
+  currActiveItem.classList.remove('image-in-modal');
+  nextActiveItem.classList.add('image-in-modal');
 }
