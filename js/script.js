@@ -57,17 +57,11 @@ function onGalleryImageClick(event) {
   refs.backdrop.classList.add('is-open');
 
   // вешаем слушатели клавиатуры
-  addKeyListeners();
+  window.addEventListener('keydown', onKeyPressOnOpenModal);
 
   // вешаем активный класс на картинку которая открывается в модалке и подменяем src элемента img.lightbox__image (и alt)
   setModalImageSource(target);
   targetItem.classList.add('image-in-modal');
-}
-
-function addKeyListeners() {
-  window.addEventListener('keydown', onEscKeyPress);
-  window.addEventListener('keydown', onRightArrowPress);
-  window.addEventListener('keydown', onLeftArrowPress);
 }
 
 function setModalImageSource(el) {
@@ -113,24 +107,22 @@ function onBackdropClick(event) {
 }
 
 // Закрытие модального окна по нажатию клавиши ESC.
-
-function onEscKeyPress(event) {
-  const ESC_KEY_CODE = 'Escape';
-  const isEsc = ESC_KEY_CODE === event.code;
-  if (isEsc) {
-    onCloseModal();
-  }
-}
-
 // Пролистывание изображений галереи в открытом модальном окне клавишами "влево" и "вправо".
 
 // открытый элемент коллекции ловим через активный класс, который ставим при открытии модалки
 // по соседям ходим через previousElementSibling и nextElementSibling
 
-function onRightArrowPress(event) {
+function onKeyPressOnOpenModal(e) {
+  const ESC_KEY_CODE = 'Escape';
   const RIGHT_ARROW_KEY_CODE = 'ArrowRight';
+  const LEFT_ARROW_KEY_CODE = 'ArrowLeft';
 
-  if (event.code === RIGHT_ARROW_KEY_CODE) {
+  const isEsc = ESC_KEY_CODE === e.code;
+  if (isEsc) {
+    onCloseModal();
+  }
+
+  if (e.code === RIGHT_ARROW_KEY_CODE) {
     // уходим от ошибки когда нет следующего элемента коллекции
     const currentItem = document.querySelector('.image-in-modal');
     if (currentItem === refs.galleryList.lastElementChild) return;
@@ -138,12 +130,8 @@ function onRightArrowPress(event) {
     const nextItem = currentItem.nextElementSibling;
     changeImage(currentItem, nextItem);
   }
-}
 
-function onLeftArrowPress(event) {
-  const LEFT_ARROW_KEY_CODE = 'ArrowLeft';
-
-  if (event.code === LEFT_ARROW_KEY_CODE) {
+  if (e.code === LEFT_ARROW_KEY_CODE) {
     const currentItem = document.querySelector('.image-in-modal');
     // уходим от ошибки когда нет предыдущего элемента коллекции
     if (currentItem === refs.galleryList.firstElementChild) return;
